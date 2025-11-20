@@ -1,0 +1,46 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+*.dll
+
+# Virtual environments
+.env/
+.venv/
+venv/
+ENV/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor/IDE
+.vscode/
+.idea/
+*.code-workspace
+
+# Blender
+*.blend1
+*.blend2
+*.blend@(
+*.blend.py
+*.blend.zip
+*.blend.tmp
+*.blend@(
+*.blend@[0-9]
+*.blend@[0-9][0-9]
+*.blend@[0-9][0-9][0-9]
+*.blend@[0-9][0-9][0-9][0-9]
+*.blend@[0-9][0-9][0-9][0-9][0-9]
+*.blend@[0-9][0-9][0-9][0-9][0-9][0-9]
+*.blend@[0-9][0-9][0-9][0-9][0-9][0-9][0-9]
+*.blend@[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]
+
+# Logs
+*.log
+
+# Cache
+.cache/
+__cache__/
