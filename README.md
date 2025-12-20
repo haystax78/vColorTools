@@ -1,6 +1,6 @@
 # vColorTools - Vertex Color Tools Addon for Blender
 
-**Version:** 1.1.1  
+**Version:** 1.2.0  
 **Author:** MattGPT  
 **Compatibility:** Blender 4.0.0 and newer  
 
@@ -23,6 +23,17 @@ vColorTools is a powerful Blender addon for creating and manipulating vertex col
 - **Color Space Options:**
   - Perceptual blending using Oklab color space
   - Standard RGB color interpolation
+
+### RGB Curves Adjustment (New in v1.2.0)
+- **Full RGB Curves Editor:** Blender's native curve editor for precise color control
+- **Per-Channel Curves:** Adjust Red, Green, Blue, and Combined (master) curves
+- **Contrast Control:** Fine-tune contrast with dedicated slider
+- **Saturation Control:** Adjust color intensity from grayscale to oversaturated
+- **Non-Destructive Workflow:**
+  - Store Base: Save current vertex colors as baseline
+  - Clear Base: Remove stored baseline
+  - Adjustments always apply from stored baseline (no stacking)
+  - Reset restores original colors and resets all sliders
 
 ### Advanced Features
 - **Projection Modes:**
@@ -100,6 +111,17 @@ The addon's panel is located in the 3D View sidebar (press `N` to toggle), under
 - Convert between different data types (byte, float)
 - Delete unused color attributes
 - Set the active color attribute for viewport display
+
+### Using RGB Curves
+1. Expand the "RGB Curves" panel
+2. Click "Initialize Curves" (first time only)
+3. Click "Store Base" to save current vertex colors as baseline
+4. Adjust curves by adding/moving control points
+5. Use Contrast and Saturation sliders for quick adjustments
+6. Click "Apply" to apply changes
+7. Adjust again and Apply - changes don't stack (uses stored baseline)
+8. Click "Reset" to restore original colors and reset all controls
+9. Click "Clear Base" to remove stored baseline when finished
 
 ## Tips for Best Results
 
