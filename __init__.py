@@ -18,6 +18,7 @@ from bpy.app.handlers import persistent
 from . import operators
 from . import ui
 from . import properties
+from . import preferences
 from . import utils
 from .ui import color_palette
 
@@ -45,6 +46,9 @@ def initialize_gradient_positions(dummy):
                 utils.ensure_gradient_positions(gradient)
 
 def register():
+    # Register preferences (includes auto-updater)
+    preferences.register()
+    
     # Register property classes
     properties.register()
     
@@ -130,6 +134,9 @@ def unregister():
     # Remove properties
     del bpy.types.Scene.vgradient_active_index
     del bpy.types.Scene.vgradient_collection
+    
+    # Unregister preferences
+    preferences.unregister()
 
 if __name__ == "__main__":
     register()
