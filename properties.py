@@ -128,6 +128,44 @@ def register():
         default=True,
         description="Show or hide the color palette panel"
     )
+    
+    # Register RGB Curves panel state
+    bpy.types.Scene.vgradient_show_curves = bpy.props.BoolProperty(
+        name="Show RGB Curves",
+        default=False,
+        description="Show or hide the RGB curves adjustment panel"
+    )
+    
+    # Register contrast property for curves adjustment
+    bpy.types.Scene.vgradient_curves_contrast = bpy.props.FloatProperty(
+        name="Contrast",
+        description="Adjust the contrast of vertex colors (0 = no change, positive = more contrast, negative = less contrast)",
+        default=0.0,
+        min=-1.0,
+        max=1.0,
+        subtype='FACTOR'
+    )
+    
+    # Register saturation property for curves adjustment
+    bpy.types.Scene.vgradient_curves_saturation = bpy.props.FloatProperty(
+        name="Saturation",
+        description="Adjust the saturation of vertex colors (0 = no change, positive = more saturated, negative = desaturated)",
+        default=0.0,
+        min=-1.0,
+        max=1.0,
+        subtype='FACTOR'
+    )
+    
+    # Register RGB Curves CurveMapping
+    # We create this dynamically since CurveMapping can't be a PointerProperty directly
+    def create_curves_mapping():
+        """Create and initialize the CurveMapping for RGB curves"""
+        curves = bpy.data.node_groups.new(name=".vColorTools_Curves", type='ShaderNodeTree')
+        # We'll use a ColorRamp node's curve data instead
+        return None
+    
+    # Use a simpler approach - store curves in WindowManager for runtime use
+    # The curves will be created when the panel is first drawn
 
 def unregister():
     """Unregister all property classes"""
@@ -140,6 +178,18 @@ def unregister():
     del bpy.types.Scene.vgradient_show_gradient_tools
     del bpy.types.Scene.vgradient_show_flood_fill
     del bpy.types.Scene.vgradient_show_color_palette
+    
+    if hasattr(bpy.types.Scene, 'vgradient_show_curves'):
+        del bpy.types.Scene.vgradient_show_curves
+    
+    if hasattr(bpy.types.Scene, 'vgradient_curves'):
+        del bpy.types.Scene.vgradient_curves
+    
+    if hasattr(bpy.types.Scene, 'vgradient_curves_contrast'):
+        del bpy.types.Scene.vgradient_curves_contrast
+    
+    if hasattr(bpy.types.Scene, 'vgradient_curves_saturation'):
+        del bpy.types.Scene.vgradient_curves_saturation
     
     for cls in reversed(classes):
         bpy.utils.unregister_class(cls)

@@ -21,6 +21,13 @@ from .gradient_operators.management import (
     VGRADIENT_OT_add_gradient,
     VGRADIENT_OT_remove_gradient
 )
+from .gradient_operators.curves import (
+    VGRADIENT_OT_apply_curves,
+    VGRADIENT_OT_store_colors,
+    VGRADIENT_OT_clear_stored_colors,
+    VGRADIENT_OT_reset_curves,
+    VGRADIENT_OT_init_curves
+)
 
 # List of all operator classes
 classes = (
@@ -34,6 +41,11 @@ classes = (
     VGRADIENT_OT_normal,
     VGRADIENT_OT_curve,
     VGRADIENT_OT_flood_fill,
+    VGRADIENT_OT_apply_curves,
+    VGRADIENT_OT_store_colors,
+    VGRADIENT_OT_clear_stored_colors,
+    VGRADIENT_OT_reset_curves,
+    VGRADIENT_OT_init_curves,
 )
 
 def register():

@@ -367,6 +367,59 @@ class VGRADIENT_PT_Panel(bpy.types.Panel):
                     # Show the color swatch
                     row.prop(color, "color", text="")
         
+        # RGB Curves - Collapsible panel
+        box = layout.box()
+        row = box.row()
+        row.prop(context.scene, "vgradient_show_curves", icon='TRIA_DOWN' if context.scene.vgradient_show_curves else 'TRIA_RIGHT', icon_only=True, emboss=False)
+        row.label(text="RGB Curves", icon='FCURVE')
+        
+        # Only show curves contents if expanded
+        if context.scene.vgradient_show_curves:
+            # Try to get the curves node
+            from ..gradient_operators.curves import get_or_create_curves_node, CURVES_NODE_TREE_NAME
+            
+            curves_node = None
+            if CURVES_NODE_TREE_NAME in bpy.data.node_groups:
+                node_tree = bpy.data.node_groups[CURVES_NODE_TREE_NAME]
+                for node in node_tree.nodes:
+                    if node.type == 'CURVE_RGB':
+                        curves_node = node
+                        break
+            
+            if curves_node is None:
+                # Curves not initialized yet
+                box.label(text="Click to initialize curves editor", icon='INFO')
+                box.operator("vgradient.init_curves", text="Initialize Curves")
+            else:
+                # Import helper to check for stored colors
+                from ..gradient_operators.curves import has_stored_colors
+                
+                # Store/Clear button at top - toggles based on stored state
+                row = box.row(align=True)
+                if has_stored_colors(context):
+                    row.operator("vgradient.clear_stored_colors", text="Clear Base", icon='X')
+                else:
+                    row.operator("vgradient.store_colors", text="Store Base", icon='FILE_TICK')
+                
+                # Show the curves editor using the node's mapping
+                box.template_curve_mapping(curves_node, "mapping", type='COLOR')
+                
+                # Contrast and Saturation sliders
+                col = box.column(align=True)
+                col.prop(context.scene, "vgradient_curves_contrast", slider=True)
+                col.prop(context.scene, "vgradient_curves_saturation", slider=True)
+                
+                # Apply and Reset buttons
+                row = box.row(align=True)
+                row.scale_y = 1.2
+                row.operator("vgradient.apply_curves", text="Apply", icon='CHECKMARK')
+                row.operator("vgradient.reset_curves", text="Reset", icon='LOOP_BACK')
+                
+                # Info text
+                col = box.column(align=True)
+                col.scale_y = 0.8
+                col.label(text="Store base colors for non-destructive editing")
+        
         # Color Attribute Manager - Separate collapsible panel
         if context.object and context.object.type == 'MESH':
             box = layout.box()
