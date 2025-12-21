@@ -170,8 +170,7 @@ class VGRADIENT_PT_Panel(bpy.types.Panel):
                 box.separator()
                 subcol = box.column(align=True)
                 subcol.scale_y = 1.2
-                subcol.label(text="No gradients available", icon='INFO')
-                subcol.label(text="Create a gradient to use the tools")
+                subcol.label(text="Create a gradient to use the tools", icon='INFO')
                 subcol.separator(factor=0.5)
                 subcol.operator("vgradient.add_gradient", icon='ADD', text="Create Gradient")
             # Gradient-specific options (only when gradients exist)
@@ -202,13 +201,7 @@ class VGRADIENT_PT_Panel(bpy.types.Panel):
                 row.prop(gradient, "use_oklab", text=color_text, icon=color_icon, toggle=True)
                 row.prop(gradient, "use_screen_space", text=screen_text, icon=screen_icon, toggle=True)
                 
-                # Add Gradient Manager directly in the gradient tools panel
-                box.separator(factor=1.0)
-                
-                # Heading for gradients list
-                box.label(text="Available Gradients:")
-                
-                # Gradient selection row with better spacing
+                # Gradient selection row
                 row = box.row()
                 # Disable gradient list when editor is active
                 row.enabled = not _is_running
@@ -224,13 +217,6 @@ class VGRADIENT_PT_Panel(bpy.types.Panel):
                 
                 # Color list section
                 gradient = scene.vgradient_collection[scene.vgradient_active_index]
-                
-                # Visual Gradient Editor section
-                box.separator(factor=0.5)
-                
-                # Gradient Editor heading with visual indicator
-                row = box.row()
-                row.label(text="Gradient Editor:")
                 
                 # Import the gradient editor state variables
                 from ..ui.gradient_editor import _is_running, _active_gradient

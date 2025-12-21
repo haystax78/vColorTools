@@ -1,6 +1,6 @@
 # vColorTools - Vertex Color Tools Addon for Blender
 
-**Version:** 1.2.1  
+**Version:** 1.2.2  
 **Author:** MattGPT  
 **Compatibility:** Blender 4.0.0 and newer  
 
@@ -8,11 +8,10 @@
 
 vColorTools is a powerful Blender addon for creating and manipulating vertex colors with intuitive gradient tools. It offers advanced color interpolation, multiple gradient types, and works seamlessly in Object, Edit, and Sculpt modes. The addon enables precise control over vertex color data with optimized performance suitable for both artistic and technical workflows.
 
-## What's New in v1.2.1
+## What's New in v1.2.2
 
 - Fixed incorrect color application in Blender 5 for Flood Fill
   (unified paint color is linear in 5.0+, no double conversion).
-- Non-destructive RGB Curves confirmed to operate in linear RGB.
 - Store Base now converts BYTE_COLOR attributes to FLOAT_COLOR instead
   of creating a duplicate empty attribute; preserves data and name.
 - Palette panel updated to Blender-native layout using `template_palette`,
@@ -20,6 +19,7 @@ vColorTools is a powerful Blender addon for creating and manipulating vertex col
   legacy palette compatibility.
 - Fill tool panel updated with a resizable color wheel and compact
   controls row (swatch, size slider, reset).
+- Gradient tools panel spacing updated for efficiency.
 
 ## Key Features
 
