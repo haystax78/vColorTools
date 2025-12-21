@@ -87,9 +87,9 @@ def register():
     )
     
     bpy.types.Scene.vgradient_use_unified_color = bpy.props.BoolProperty(
-        name="Use Global Color",
-        description="Use Blender's global paint color for flood fill instead of the custom color",
-        default=False
+        name="Use Unified Color",
+        description="Use Blender's unified paint color for flood fill instead of the custom color",
+        default=True
     )
 
     # Register flood fill color property
@@ -156,6 +156,17 @@ def register():
         subtype='FACTOR'
     )
     
+    # Register color wheel scale property
+    bpy.types.Scene.vgradient_wheel_scale = bpy.props.FloatProperty(
+        name="Size",
+        description="Scale of the color wheel display",
+        default=1.0,
+        min=0.5,
+        max=3.0,
+        soft_min=0.7,
+        soft_max=2.0
+    )
+    
     # Register RGB Curves CurveMapping
     # We create this dynamically since CurveMapping can't be a PointerProperty directly
     def create_curves_mapping():
@@ -190,6 +201,9 @@ def unregister():
     
     if hasattr(bpy.types.Scene, 'vgradient_curves_saturation'):
         del bpy.types.Scene.vgradient_curves_saturation
+    
+    if hasattr(bpy.types.Scene, 'vgradient_wheel_scale'):
+        del bpy.types.Scene.vgradient_wheel_scale
     
     for cls in reversed(classes):
         bpy.utils.unregister_class(cls)

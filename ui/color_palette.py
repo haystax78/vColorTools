@@ -163,8 +163,23 @@ class VGRADIENT_OT_create_default_palette(bpy.types.Operator):
                 color = palette.colors.new()
                 color.color = color_rgb
         
-        # Set as the active palette
+        # Set as the active palette (legacy property for backward compatibility)
         context.scene.vgradient_active_palette = palette
+        
+        # Also assign to current paint settings
+        ts = context.tool_settings
+        paint_settings = None
+        if context.mode == 'PAINT_VERTEX':
+            paint_settings = ts.vertex_paint
+        elif context.mode == 'SCULPT':
+            paint_settings = ts.sculpt
+        elif context.mode == 'PAINT_TEXTURE':
+            paint_settings = ts.image_paint
+        else:
+            paint_settings = ts.image_paint
+        
+        if paint_settings:
+            paint_settings.palette = palette
         
         self.report({'INFO'}, f"Created or selected palette '{palette_name}'")
         return {'FINISHED'}

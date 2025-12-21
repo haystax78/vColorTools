@@ -42,22 +42,23 @@ class VGRADIENT_OT_flood_fill(bpy.types.Operator):
         use_mask_mode = False
         
         if context.scene.vgradient_use_unified_color:
-            # Get color from unified paint settings (this is sRGB)
+            # Get color from unified paint settings
             ups = utils.get_unified_paint_settings(context)
-            srgb_color = ups.color if ups else None
-            if srgb_color is None:
-                # Fallback to scene property (likely linear), convert to sRGB for uniform handling
-                linear_c = context.scene.vgradient_flood_fill_color
-                srgb_color = (
-                    utils.linear_to_srgb(linear_c[0]),
-                    utils.linear_to_srgb(linear_c[1]),
-                    utils.linear_to_srgb(linear_c[2]),
-                )
-            # Convert sRGB to linear RGB for vertex colors
-            linear_color = utils.convert_color_srgb_to_linear(srgb_color)
+            if ups:
+                # In Blender 5.0+, unified_paint_settings.color is already linear
+                # In earlier versions, it was sRGB
+                if bpy.app.version >= (5, 0, 0):
+                    # Blender 5.0+: color is already in linear space
+                    linear_color = tuple(ups.color)
+                else:
+                    # Pre-5.0: color is in sRGB, convert to linear
+                    linear_color = utils.convert_color_srgb_to_linear(ups.color)
+            else:
+                # Fallback to scene property
+                linear_color = context.scene.vgradient_flood_fill_color
         else:
             # Get color from the custom flood fill property
-            # FloatVectorProperty(subtype='COLOR') usually provides linear color directly
+            # FloatVectorProperty(subtype='COLOR') stores linear color
             linear_color = context.scene.vgradient_flood_fill_color
         
         # Convert from RGB to RGBA (add alpha=1.0)

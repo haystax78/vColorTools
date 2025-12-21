@@ -301,16 +301,23 @@ class VGRADIENT_PT_Panel(bpy.types.Panel):
                 data_source = context.scene
                 prop_name = "vgradient_flood_fill_color"
 
-            # Always display the expanded color picker
-            box.template_color_picker(data_source, prop_name, value_slider=True)
+            # Color wheel with dynamic scaling
+            col = box.column()
+            col.scale_y = context.scene.vgradient_wheel_scale
+            col.template_color_picker(data_source, prop_name, value_slider=True)
 
-            # Always display the small color swatch below the expanded picker
-            swatch_row = box.row(align=True)
-            swatch_row.prop(data_source, prop_name, text="")
+            # Controls row: color swatch, size slider, reset button
+            ctrl_col = box.column(align=True)
+            row = ctrl_col.row(align=True)
+            split = row.split(factor=0.35, align=True)
+            split.prop(data_source, prop_name, text="")
+            right_split = split.split(factor=0.85, align=True)
+            right_split.prop(context.scene, "vgradient_wheel_scale", text="Size", slider=True)
+            right_split.operator("vgradient.reset_wheel_scale", text="", icon='LOOP_BACK')
 
             # Flood Fill Button
-            button_row = box.row(align=True)
-            button_row.operator("vgradient.flood_fill", icon='BRUSH_DATA', text="Fill")
+            row = ctrl_col.row(align=True)
+            row.operator("vgradient.flood_fill", icon='BRUSH_DATA', text="Fill")
             
             # Show message if disabled
             if _is_running:
@@ -324,48 +331,39 @@ class VGRADIENT_PT_Panel(bpy.types.Panel):
         
         # Only show color palette contents if expanded
         if context.scene.vgradient_show_color_palette:
-            # Palette selector
-            row = box.row()
-            row.prop(context.scene, "vgradient_active_palette", text="")
-            row.operator("vgradient.create_default_palette", text="", icon='ADD')
+            ts = context.tool_settings
             
-            # Only show palette colors if a palette is selected
-            palette = context.scene.vgradient_active_palette
-            if palette:
-                # Add/Remove color buttons
+            # Get paint settings based on current mode
+            paint_settings = None
+            if context.mode == 'PAINT_VERTEX':
+                paint_settings = ts.vertex_paint
+            elif context.mode == 'SCULPT':
+                paint_settings = ts.sculpt
+            elif context.mode == 'PAINT_TEXTURE':
+                paint_settings = ts.image_paint
+            else:
+                paint_settings = ts.image_paint
+            
+            if paint_settings:
+                # Palette selector using Blender's native template (no auto 'new' button)
                 row = box.row(align=True)
-                add_op = row.operator("vgradient.add_to_palette", text="", icon='ADD')
-                remove_op = row.operator("vgradient.remove_palette_color", text="", icon='REMOVE')
+                row.template_ID(paint_settings, "palette")
                 
-                # Display colors in a grid
-                grid = box.grid_flow(row_major=True, columns=4, even_columns=True)
+                # Show create default vColorTools palette button if no palette exists
+                if not paint_settings.palette:
+                    row.operator(
+                        "vgradient.create_default_palette",
+                        text="Create Default Palette",
+                        icon='ADD'
+                    )
+                    # Show hint about existing vColorTools palette
+                    if "vColorTools" in bpy.data.palettes:
+                        box.label(text="Use the dropdown to select the existing 'vColorTools' palette or click the palette button to create/assign it.", icon='INFO')
                 
-                # Get the active color index from the scene
-                active_index = context.scene.vgradient_active_color_index
-                if active_index >= len(palette.colors):
-                    active_index = 0 if len(palette.colors) > 0 else -1
-                    context.scene.vgradient_active_color_index = active_index
-                
-                # Display all colors in the palette
-                for i, color in enumerate(palette.colors):
-                    # Create a column for each color
-                    col = grid.column()
-                    
-                    # If this is the active color, wrap it in a box with padding
-                    if i == active_index:
-                        # Create a box with a light gray border
-                        box_col = col.box()
-                        box_col.scale_y = 0.9
-                        row = box_col.row(align=True)
-                    else:
-                        row = col.row(align=True)
-                    
-                    # Create a button that selects this color
-                    op = row.operator("vgradient.select_palette_color", text="")
-                    op.color_index = i
-                    
-                    # Show the color swatch
-                    row.prop(color, "color", text="")
+                if paint_settings.palette:
+                    # Native palette grid display
+                    col = box.column()
+                    col.template_palette(paint_settings, "palette", color=True)
         
         # RGB Curves - Collapsible panel
         box = layout.box()
@@ -701,6 +699,18 @@ class VGRADIENT_OT_color_attribute_set_active_by_click(bpy.types.Operator):
 
 # Note: The Color Attribute Manager panel has been integrated into the main panel
 
+class VGRADIENT_OT_reset_wheel_scale(bpy.types.Operator):
+    """Reset color wheel scale to default value"""
+    bl_idname = "vgradient.reset_wheel_scale"
+    bl_label = "Reset Wheel Scale"
+    bl_description = "Reset the color wheel size to default"
+    bl_options = {'INTERNAL'}
+    
+    def execute(self, context):
+        context.scene.vgradient_wheel_scale = 1.0
+        return {'FINISHED'}
+
+
 # List of all classes in this module
 classes = (
     VGRADIENT_UL_colors,
@@ -710,8 +720,10 @@ classes = (
     VGRADIENT_OT_color_attribute_convert,
     VGRADIENT_OT_color_attribute_set_active,
     VGRADIENT_OT_color_attribute_set_active_by_click,
+    VGRADIENT_OT_reset_wheel_scale,
     VGRADIENT_PT_Panel,
 )
+
 
 def register():
     """Register all UI classes"""

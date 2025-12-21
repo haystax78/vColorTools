@@ -7,7 +7,7 @@ bl_info = {
     "name": "vColor Tools",
     "blender": (4, 0, 0),
     "category": "Object",
-    "version": (1, 2, 0),
+    "version": (1, 2, 1),
     "author": "MattGPT",
     "description": "Tools to supplement your vertex painting workflow",
 }

@@ -251,6 +251,78 @@ def ensure_vertex_color_attribute(obj):
         obj.data.attributes.active_color = color_attributes[0]
         return color_attributes[0]
     
+    # Check for BYTE_COLOR attributes that we can convert to FLOAT_COLOR
+    byte_color_attrs = [attr for attr in obj.data.attributes 
+                       if attr.data_type == 'BYTE_COLOR']
+    
+    if byte_color_attrs:
+        # Convert the first BYTE_COLOR attribute to FLOAT_COLOR with POINT domain
+        source_attr = byte_color_attrs[0]
+        source_name = source_attr.name
+        source_domain = source_attr.domain
+        print(f"[DEBUG] Converting BYTE_COLOR attribute '{source_name}' to FLOAT_COLOR")
+        
+        # Read existing color data from source attribute
+        num_elements = len(source_attr.data)
+        source_colors = []
+        for i in range(num_elements):
+            source_colors.append(tuple(source_attr.data[i].color))
+        
+        num_verts = len(obj.data.vertices)
+        
+        # Pre-compute vertex colors if converting from CORNER domain
+        vertex_color_data = []
+        if source_domain == 'CORNER':
+            # Build vertex to loop mapping
+            vertex_colors = {}
+            vertex_counts = {}
+            for poly in obj.data.polygons:
+                for loop_idx in poly.loop_indices:
+                    vert_idx = obj.data.loops[loop_idx].vertex_index
+                    color = source_colors[loop_idx]
+                    if vert_idx not in vertex_colors:
+                        vertex_colors[vert_idx] = [0.0, 0.0, 0.0, 0.0]
+                        vertex_counts[vert_idx] = 0
+                    vertex_colors[vert_idx][0] += color[0]
+                    vertex_colors[vert_idx][1] += color[1]
+                    vertex_colors[vert_idx][2] += color[2]
+                    vertex_colors[vert_idx][3] += color[3]
+                    vertex_counts[vert_idx] += 1
+            
+            # Average colors
+            for vert_idx in range(num_verts):
+                if vert_idx in vertex_colors and vertex_counts[vert_idx] > 0:
+                    count = vertex_counts[vert_idx]
+                    vertex_color_data.append((
+                        vertex_colors[vert_idx][0] / count,
+                        vertex_colors[vert_idx][1] / count,
+                        vertex_colors[vert_idx][2] / count,
+                        vertex_colors[vert_idx][3] / count
+                    ))
+                else:
+                    vertex_color_data.append((1.0, 1.0, 1.0, 1.0))
+        else:
+            # Direct copy for POINT domain
+            for i in range(num_verts):
+                if i < num_elements:
+                    vertex_color_data.append(source_colors[i])
+                else:
+                    vertex_color_data.append((1.0, 1.0, 1.0, 1.0))
+        
+        # Remove the old BYTE_COLOR attribute first (so we can reuse the name)
+        obj.data.attributes.remove(source_attr)
+        
+        # Create new FLOAT_COLOR attribute with the original name
+        new_attr = obj.data.attributes.new(name=source_name, type='FLOAT_COLOR', domain=domain)
+        
+        # Apply the pre-computed colors
+        for vert_idx in range(num_verts):
+            new_attr.data[vert_idx].color = vertex_color_data[vert_idx]
+        
+        obj.data.attributes.active_color = new_attr
+        print(f"[DEBUG] Converted to FLOAT_COLOR attribute: {new_attr.name}")
+        return new_attr
+    
     # If no color attributes exist, create a new one named "Color"
     print(f"[DEBUG] Creating new color attribute named 'Color'")
     color_attribute = obj.data.attributes.new(name="Color", type='FLOAT_COLOR', domain=domain)
