@@ -92,14 +92,14 @@ class VGRADIENT_OT_radial(bpy.types.Operator):
                 use_mask_mode = context.mode == 'SCULPT' and cls._last_event and cls._last_event.alt
                 
                 # Draw filled circle at center with appropriate gradient color
-                if not use_mask_mode and gradient and len(gradient.colors) > 0:
+                if not use_mask_mode and gradient and utils.get_gradient_color_count(gradient) > 0:
                     # Get the appropriate color from gradient based on direction
                     if cls._gradient_reversed:
                         # If reversed, use the last color for the center
-                        linear_color = gradient.colors[-1].color
+                        linear_color = utils.get_gradient_last_color(gradient)
                     else:
                         # Otherwise use the first color for the center
-                        linear_color = gradient.colors[0].color
+                        linear_color = utils.get_gradient_first_color(gradient)
                     
                     # Convert from linear to sRGB for display
                     display_color = (utils.linear_to_srgb(linear_color[0]), 
@@ -131,7 +131,7 @@ class VGRADIENT_OT_radial(bpy.types.Operator):
                     batch.draw(shader)
                 
                 # If we have a radius, draw the circle and radius line
-                if cls._draw_radius > 0 and not use_mask_mode and gradient and len(gradient.colors) > 0:
+                if cls._draw_radius > 0 and not use_mask_mode and gradient and utils.get_gradient_color_count(gradient) > 0:
                     # Thickness of the line (in pixels)
                     thickness = 10 * ui_scale
                     segments = 32
@@ -553,11 +553,6 @@ class VGRADIENT_OT_radial(bpy.types.Operator):
                 # Make sure the color attribute is active
                 obj.data.attributes.active_color = target_attribute
             
-            # Debug gradient colors
-            print(f"\nProcessing object: {obj.name}")
-            print("Gradient Debug:")
-            for i, color in enumerate(gradient.colors):
-                print(f"Color {i}: {color.color}")
                 
             # Get vertex positions and mask
             num_verts = len(mesh.vertices)
@@ -801,68 +796,44 @@ class VGRADIENT_OT_radial(bpy.types.Operator):
         if not use_mask_mode:
             # Only update preview color if not in mask mode
             gradient = utils.get_active_gradient(context)
-            if gradient and len(gradient.colors) > 0:
-                # Default color in case we don't calculate one below
-                # Choose appropriate color based on gradient direction
-                color_index = -1 if self.__class__._gradient_reversed else 0
-                color = gradient.colors[color_index].color
+            if gradient and utils.get_gradient_color_count(gradient) > 0:
+                # Default color based on gradient direction
+                if self.__class__._gradient_reversed:
+                    color = utils.get_gradient_last_color(gradient)
+                else:
+                    color = utils.get_gradient_first_color(gradient)
                 
                 # If we have a center point and a current mouse position, sample the color at the cursor position
                 if hasattr(self, 'center_point') and self.__class__._draw_current_point:
-                    # Calculate factor based on distance from center to current point
                     current_point = (event.mouse_region_x, event.mouse_region_y)
                     
-                    # Get center point in screen space
                     if self.__class__._draw_screen_center:
                         center_point = self.__class__._draw_screen_center
-                        
-                        # Calculate distance from center to current point
                         delta = Vector(current_point) - center_point
                         distance = delta.length
-                        
-                        # Get the radius
                         radius = self.__class__._draw_radius if hasattr(self.__class__, '_draw_radius') else 1.0
                         
                         if radius > 0:
-                            # Calculate t value (0 to 1)
                             t = min(1.0, distance / radius)
-                            
-                            # Reverse t if gradient is reversed
                             if self.__class__._gradient_reversed:
                                 t = 1.0 - t
-                            
-                            # Sample color from gradient
                             color = utils.interpolate_gradient_color(gradient, t)
                     else:
-                        # If center point is not in screen space, use default colors
+                        # Use appropriate end color based on state
                         if hasattr(self, 'center_point') and not hasattr(self, 'radius'):
-                            # After first click, show the last color in the gradient
-                            if len(gradient.colors) > 1:
-                                # Get the index based on gradient direction
-                                color_index = 0 if self.__class__._gradient_reversed else -1
-                                color = gradient.colors[color_index].color
+                            # After first click, show the opposite end color
+                            if self.__class__._gradient_reversed:
+                                color = utils.get_gradient_first_color(gradient)
                             else:
-                                color = gradient.colors[0].color
-                        else:
-                            # Before first click or after second click, show the first color
-                            # Get the index based on gradient direction
-                            color_index = -1 if self.__class__._gradient_reversed else 0
-                            color = gradient.colors[color_index].color
+                                color = utils.get_gradient_last_color(gradient)
                 else:
                     # Choose color based on state
                     if hasattr(self, 'center_point') and not hasattr(self, 'radius'):
-                        # After first click, show the last color in the gradient
-                        if len(gradient.colors) > 1:
-                            # Get the index based on gradient direction
-                            color_index = 0 if self.__class__._gradient_reversed else -1
-                            color = gradient.colors[color_index].color
+                        # After first click, show the opposite end color
+                        if self.__class__._gradient_reversed:
+                            color = utils.get_gradient_first_color(gradient)
                         else:
-                            color = gradient.colors[0].color
-                    else:
-                        # Before first click or after second click, show the first color
-                        # Get the index based on gradient direction
-                        color_index = -1 if self.__class__._gradient_reversed else 0
-                        color = gradient.colors[color_index].color
+                            color = utils.get_gradient_last_color(gradient)
             else:
                 color = (1, 1, 1, 1)
             

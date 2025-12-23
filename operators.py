@@ -15,11 +15,9 @@ from .gradient_operators.normal import VGRADIENT_OT_normal
 from .gradient_operators.curve import VGRADIENT_OT_curve
 from .gradient_operators.flood_fill import VGRADIENT_OT_flood_fill
 from .gradient_operators.management import (
-    VGRADIENT_OT_add_color,
-    VGRADIENT_OT_remove_color,
-    VGRADIENT_OT_move_color,
     VGRADIENT_OT_add_gradient,
-    VGRADIENT_OT_remove_gradient
+    VGRADIENT_OT_remove_gradient,
+    VGRADIENT_OT_migrate_gradients
 )
 from .gradient_operators.curves import (
     VGRADIENT_OT_apply_curves,
@@ -31,11 +29,9 @@ from .gradient_operators.curves import (
 
 # List of all operator classes
 classes = (
-    VGRADIENT_OT_add_color,
-    VGRADIENT_OT_remove_color,
-    VGRADIENT_OT_move_color,
     VGRADIENT_OT_add_gradient,
     VGRADIENT_OT_remove_gradient,
+    VGRADIENT_OT_migrate_gradients,
     VGRADIENT_OT_linear,
     VGRADIENT_OT_radial,
     VGRADIENT_OT_normal,

@@ -179,26 +179,14 @@ class VGRADIENT_OT_add_gradient(bpy.types.Operator):
         new_gradient = gradients.add()
         new_gradient.name = f"Gradient {len(gradients)}"
         
-        # Initialize with default colors
-        # Create a standard black to white gradient with proper positions
-        colors = [
-            (0.0, 0.0, 0.0, 1.0),  # Black at position 0
-            (1.0, 1.0, 1.0, 1.0),   # White at position 1
-        ]
-        
-        positions = [0.0, 1.0]
-        
-        for i, (color, position) in enumerate(zip(colors, positions)):
-            color_data = new_gradient.colors.add()
-            color_data.color = color
-            color_data.position = position
-            print(f"Added color {i} at position {position}")
+        # Initialize the ColorRamp with default black to white gradient
+        # The ColorRamp node group is created automatically with defaults
+        # when get_or_create_gradient_node_group is called
+        from .. import utils
+        utils.get_or_create_gradient_node_group(new_gradient)
         
         # Set the active gradient index to the new gradient
         context.scene.vgradient_active_index = len(gradients) - 1
-        
-        # Automatically expand the gradient manager
-        context.scene.vgradient_show_manager = True
         
         return {'FINISHED'}
 
@@ -226,7 +214,36 @@ class VGRADIENT_OT_remove_gradient(bpy.types.Operator):
         index = scene.vgradient_active_index
         
         if index >= 0 and index < len(scene.vgradient_collection):
+            # Get the gradient name before removing to clean up its node group
+            gradient_name = scene.vgradient_collection[index].name
+            from .. import utils
+            node_group_name = utils.get_gradient_node_group_name(gradient_name)
+            
+            # Remove the gradient
             scene.vgradient_collection.remove(index)
             scene.vgradient_active_index = min(index, len(scene.vgradient_collection) - 1)
             
+            # Clean up the associated node group
+            if node_group_name in bpy.data.node_groups:
+                bpy.data.node_groups.remove(bpy.data.node_groups[node_group_name])
+            
+        return {'FINISHED'}
+
+
+class VGRADIENT_OT_migrate_gradients(bpy.types.Operator):
+    """Migrate legacy gradients to the new ColorRamp format"""
+    bl_idname = "vgradient.migrate_gradients"
+    bl_label = "Migrate Gradients"
+    bl_description = "Convert legacy gradients to the new ColorRamp format"
+    bl_options = {'REGISTER', 'UNDO'}
+    
+    def __new__(cls, *args, **kwargs):
+        return super().__new__(cls, *args, **kwargs)
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+    def execute(self, context):
+        utils.migrate_legacy_gradients()
+        self.report({'INFO'}, "Legacy gradients migrated successfully")
         return {'FINISHED'}

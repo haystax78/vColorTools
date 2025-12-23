@@ -251,16 +251,16 @@ class VGRADIENT_OT_normal(bpy.types.Operator):
                                 gradient = utils.get_active_gradient(context)
                                 
                                 # Draw a circle at the base of the arrow with the starting color of the gradient
-                                if gradient and len(gradient.colors) > 0 and not use_mask_mode:
+                                if gradient and utils.get_gradient_color_count(gradient) > 0 and not use_mask_mode:
                                     # Get the appropriate colors from gradient based on direction
                                     if cls._gradient_reversed:
                                         # If reversed, last color is the starting color
-                                        start_color = gradient.colors[-1].color
-                                        end_color = gradient.colors[0].color
+                                        start_color = utils.get_gradient_last_color(gradient)
+                                        end_color = utils.get_gradient_first_color(gradient)
                                     else:
                                         # Otherwise first color is the starting color
-                                        start_color = gradient.colors[0].color
-                                        end_color = gradient.colors[-1].color
+                                        start_color = utils.get_gradient_first_color(gradient)
+                                        end_color = utils.get_gradient_last_color(gradient)
                                     
                                     # Convert from linear to sRGB for display
                                     start_display_color = (utils.linear_to_srgb(start_color[0]), 
@@ -304,7 +304,7 @@ class VGRADIENT_OT_normal(bpy.types.Operator):
                                         # We'll create a series of quads along the arrow shaft, each with its own gradient segment
                                         
                                         # Number of segments to use for the gradient (more segments = smoother gradient)
-                                        num_segments = max(10, len(gradient.colors) * 3)
+                                        num_segments = max(10, utils.get_gradient_color_count(gradient) * 3)
                                         
                                         # Calculate direction and length
                                         direction = Vector((end_2d.x - sample_2d.x, end_2d.y - sample_2d.y))
@@ -666,8 +666,8 @@ class VGRADIENT_OT_normal(bpy.types.Operator):
                 
                 # Update the preview color
                 gradient = utils.get_active_gradient(context)
-                if gradient and len(gradient.colors) > 0:
-                    self.__class__._draw_preview_color = gradient.colors[0].color
+                if gradient and utils.get_gradient_color_count(gradient) > 0:
+                    self.__class__._draw_preview_color = utils.get_gradient_first_color(gradient)
                 
                 # Force a redraw
                 context.area.tag_redraw()
@@ -786,11 +786,6 @@ class VGRADIENT_OT_normal(bpy.types.Operator):
                 # Make sure the color attribute is active
                 obj.data.attributes.active_color = target_attribute
             
-            # Debug gradient colors
-            print(f"\nProcessing object: {obj.name}")
-            print("Gradient Debug:")
-            for i, color in enumerate(gradient.colors):
-                print(f"Color {i}: {color.color}")
                 
             # Get vertex positions and normals
             num_verts = len(mesh.vertices)
@@ -1135,7 +1130,7 @@ class VGRADIENT_OT_normal(bpy.types.Operator):
                                 hit_point, hit_normal, hit_index, hit_dist = hit
                                 if hit_dist is not None and hit_dist > 1e-5:
                                     shadowed[vi] = True
-                    last_color = np.array(gradient.colors[-1].color)
+                    last_color = np.array(utils.get_gradient_last_color(gradient))
                     if use_mask_mode:
                         factors = (dot_products + 1.0) * 0.5
                         if self.__class__._gradient_reversed:

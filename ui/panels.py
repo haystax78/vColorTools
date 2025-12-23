@@ -148,22 +148,14 @@ class VGRADIENT_PT_Panel(bpy.types.Panel):
         gradient_tools_visible = context.scene.vgradient_show_gradient_tools
         
         if gradient_tools_visible:
-            # Import the gradient editor state variables
-            from ..ui.gradient_editor import _is_running
-            
             # Gradient operators in a row with proper alignment and spacing
-            # Following the "Mode toggling buttons" guideline for important actions
             row = box.row(align=True)
-            row.scale_y = 1.2  # Make buttons slightly larger for better visibility
-            # Disable gradient tools when editor is active
-            row.enabled = has_gradients and not _is_running
-            if _is_running:
-                row.label(text="Gradient tools disabled while editor is active")
-            else:
-                row.operator("vgradient.linear", icon='ARROW_LEFTRIGHT', text="Linear")
-                row.operator("vgradient.radial", icon='RADIOBUT_ON', text="Radial")
-                row.operator("vgradient.normal", icon='NORMALS_VERTEX', text="Normal")
-                row.operator("vgradient.curve", icon='CURVE_PATH', text="Curve")
+            row.scale_y = 1.2
+            row.enabled = has_gradients
+            row.operator("vgradient.linear", icon='ARROW_LEFTRIGHT', text="Linear")
+            row.operator("vgradient.radial", icon='RADIOBUT_ON', text="Radial")
+            row.operator("vgradient.normal", icon='NORMALS_VERTEX', text="Normal")
+            row.operator("vgradient.curve", icon='CURVE_PATH', text="Curve")
             
             # Show message if no gradients (with clear visual hierarchy)
             if not has_gradients:
@@ -203,77 +195,34 @@ class VGRADIENT_PT_Panel(bpy.types.Panel):
                 
                 # Gradient selection row
                 row = box.row()
-                # Disable gradient list when editor is active
-                row.enabled = not _is_running
                 row.template_list("UI_UL_list", "vgradient_list", scene, "vgradient_collection",
                                 scene, "vgradient_active_index", rows=2)
                 
                 # Add/Remove gradient buttons
                 col = row.column(align=True)
-                # Disable gradient management when editor is active
-                col.enabled = not _is_running
                 col.operator("vgradient.add_gradient", icon='ADD', text="")
                 col.operator("vgradient.remove_gradient", icon='REMOVE', text="")
                 
-                # Color list section
+                # Get active gradient and its ColorRamp node
                 gradient = scene.vgradient_collection[scene.vgradient_active_index]
                 
-                # Import the gradient editor state variables
-                from ..ui.gradient_editor import _is_running, _active_gradient
+                # Get the ColorRamp node for this gradient (don't create in draw context)
+                color_ramp_node = utils.get_or_create_gradient_node_group(gradient, create_if_missing=False)
                 
-                # Start/stop gradient editor buttons
-                row = box.row(align=True)
-                if not _is_running:
-                    row.operator("vgradient.start_gradient_editor", text="Open Gradient Editor", icon='MODIFIER')
+                if color_ramp_node:
+                    # Display the built-in Blender gradient editor
+                    box.template_color_ramp(color_ramp_node, "color_ramp", expand=True)
                 else:
-                    # Make the stop button more prominent
-                    row.scale_y = 1.2
-                    row.alert = True
-                    row.operator("vgradient.stop_gradient_editor", text="Stop Editing", icon='CANCEL')
-                    
-                    # Instructions
-                    col = box.column(align=True)
-                    col.label(text="• Click gradient to add color stops")
-                    col.label(text="• Drag triangles to adjust positions")
-                    col.label(text="• Press ENTER/LMB to accept changes")
-                    
-                # Color list with reordering - use a more compact horizontal layout
-                row = box.row()
-                # Use a more compact list but keep the standard layout for functionality
-                row.template_list("VGRADIENT_UL_colors", "", 
-                                gradient, "colors",
-                                gradient, "active_color_index",
-                                rows=min(3, max(2, len(gradient.colors))))
-                
-                # Add/Remove/Move buttons with better grouping
-                col = row.column(align=True)
-                # Disable color stop management when editor is active
-                # (except for color editing which should remain available)
-                col.enabled = not _is_running
-                # Group add/remove operations
-                col.operator("vgradient.add_color", icon='ADD', text="")
-                col.operator("vgradient.remove_color", icon='REMOVE', text="")
-                col.separator(factor=0.5)
-                # Group movement operations
-                col.operator("vgradient.move_color", icon='TRIA_UP', text="").type = 'UP'
-                col.operator("vgradient.move_color", icon='TRIA_DOWN', text="").type = 'DOWN'
+                    # Node group doesn't exist yet - show migrate button
+                    box.label(text="Legacy gradient detected", icon='INFO')
+                    box.operator("vgradient.migrate_gradients", text="Migrate to New Format", icon='FILE_REFRESH')
                 
         
-        # Import the gradient editor state variables if not already imported
-        try:
-            _is_running
-        except NameError:
-            from ..ui.gradient_editor import _is_running
-            
         # Flood Fill Tool - Collapsible panel
         box = layout.box()
         row = box.row()
         row.prop(context.scene, "vgradient_show_flood_fill", icon='TRIA_DOWN' if context.scene.vgradient_show_flood_fill else 'TRIA_RIGHT', icon_only=True, emboss=False)
         row.label(text="Flood Fill Tool", icon='BRUSH_DATA')
-        
-        # Show disabled status if editor is active
-        if _is_running:
-            row.label(text="(Disabled while editor is active)", icon='LOCKED')
         
         # Only show flood fill contents if expanded
         if context.scene.vgradient_show_flood_fill:
@@ -304,10 +253,6 @@ class VGRADIENT_PT_Panel(bpy.types.Panel):
             # Flood Fill Button
             row = ctrl_col.row(align=True)
             row.operator("vgradient.flood_fill", icon='BRUSH_DATA', text="Fill")
-            
-            # Show message if disabled
-            if _is_running:
-                box.label(text="Flood fill is disabled while the gradient editor is active", icon='INFO')
         
         # Color Palette - Separate collapsible panel
         box = layout.box()

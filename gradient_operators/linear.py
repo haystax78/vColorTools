@@ -177,7 +177,7 @@ class VGRADIENT_OT_linear(bpy.types.Operator):
                         # Get the active gradient
                         gradient = utils.get_active_gradient(context)
                         
-                        if gradient and len(gradient.colors) > 0:
+                        if gradient and utils.get_gradient_color_count(gradient) > 0:
                             # For gradient mode, we'll create a series of segments to show the gradient
                             num_segments = 20  # Number of segments to divide the line into
                             
@@ -722,11 +722,12 @@ class VGRADIENT_OT_linear(bpy.types.Operator):
         if not use_mask_mode:
             # Only update preview color if not in mask mode
             gradient = utils.get_active_gradient(context)
-            if gradient and len(gradient.colors) > 0:
-                # Default color in case we don't calculate one below
-                # Choose appropriate color based on gradient direction
-                color_index = -1 if self.__class__._gradient_reversed else 0
-                color = gradient.colors[color_index].color
+            if gradient and utils.get_gradient_color_count(gradient) > 0:
+                # Default color based on gradient direction
+                if self.__class__._gradient_reversed:
+                    color = utils.get_gradient_last_color(gradient)
+                else:
+                    color = utils.get_gradient_first_color(gradient)
                 
                 # If we have a start point and a current mouse position, sample the color at the cursor position
                 if hasattr(self, 'start_point') and self.__class__._draw_current_point:
@@ -771,24 +772,25 @@ class VGRADIENT_OT_linear(bpy.types.Operator):
                                 color = utils.interpolate_gradient_color(gradient, t)
                     else:
                         # Only have start point, use default color based on gradient direction
-                        color_index = -1 if self.__class__._gradient_reversed else 0
-                        color = gradient.colors[color_index].color
+                        if self.__class__._gradient_reversed:
+                            color = utils.get_gradient_last_color(gradient)
+                        else:
+                            color = utils.get_gradient_first_color(gradient)
                 # If we don't have enough points to calculate a position, use endpoint colors
                 else:
                     # Choose color based on state
                     if hasattr(self, 'start_point') and not hasattr(self, 'end_point'):
-                        # After first click, show the last color in the gradient
-                        if len(gradient.colors) > 1:
-                            # Get the index based on gradient direction
-                            color_index = 0 if self.__class__._gradient_reversed else -1
-                            color = gradient.colors[color_index].color
+                        # After first click, show the opposite end color
+                        if self.__class__._gradient_reversed:
+                            color = utils.get_gradient_first_color(gradient)
                         else:
-                            color = gradient.colors[0].color
+                            color = utils.get_gradient_last_color(gradient)
                     else:
                         # Before first click or after second click, show the first color
-                        # Get the index based on gradient direction
-                        color_index = -1 if self.__class__._gradient_reversed else 0
-                        color = gradient.colors[color_index].color
+                        if self.__class__._gradient_reversed:
+                            color = utils.get_gradient_last_color(gradient)
+                        else:
+                            color = utils.get_gradient_first_color(gradient)
             else:
                 color = (1, 1, 1, 1)
                 

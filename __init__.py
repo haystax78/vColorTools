@@ -5,9 +5,9 @@ Tools to supplement your vertex painting workflow
 
 bl_info = {
     "name": "vColor Tools",
-    "blender": (4, 0, 0),
+    "blender": (4, 5, 0),
     "category": "Object",
-    "version": (1, 2, 2),
+    "version": (1, 3, 0),
     "author": "MattGPT",
     "description": "Tools to supplement your vertex painting workflow",
 }
@@ -35,11 +35,15 @@ def is_blender_44_or_newer():
     version = get_blender_version()
     return version[0] > 4 or (version[0] == 4 and version[1] >= 4)
 
-# Scene load handler to initialize gradient positions
+# Scene load handler to initialize gradient positions and migrate legacy gradients
 @persistent
 def initialize_gradient_positions(dummy):
-    """Initialize positions for all gradients in all scenes"""
+    """Initialize positions and migrate legacy gradients for all scenes"""
     # This runs when a file is loaded
+    # First, migrate any legacy gradients to the new ColorRamp format
+    utils.migrate_legacy_gradients()
+    
+    # Then ensure gradient positions are initialized
     for scene in bpy.data.scenes:
         if hasattr(scene, 'vgradient_collection'):
             for gradient in scene.vgradient_collection:

@@ -472,10 +472,13 @@ class VGRADIENT_OT_curve(bpy.types.Operator):
         
         if num_points == 0:
             # No points placed yet - show first or last color based on gradient direction
-            if gradient.colors:
+            color_count = utils.get_gradient_color_count(gradient)
+            if color_count > 0:
                 # Get the appropriate color based on gradient direction
-                color_index = -1 if self.__class__._gradient_reversed else 0
-                linear_color = gradient.colors[color_index].color
+                if self.__class__._gradient_reversed:
+                    linear_color = utils.get_gradient_last_color(gradient)
+                else:
+                    linear_color = utils.get_gradient_first_color(gradient)
                 
                 # Convert from linear to sRGB for display
                 display_color = (utils.linear_to_srgb(linear_color[0]), 
@@ -486,19 +489,15 @@ class VGRADIENT_OT_curve(bpy.types.Operator):
             return
         elif num_points == 1:
             # One point placed - show middle color in gradient
-            if gradient.colors and len(gradient.colors) > 1:
-                # Find the middle color or interpolate between colors
+            color_count = utils.get_gradient_color_count(gradient)
+            if color_count > 1:
+                # Interpolate to get a color from the middle of the gradient
                 if self.__class__._gradient_reversed:
-                    # For reversed gradient, use a color from the first half
-                    middle_idx = len(gradient.colors) // 4
+                    t = 0.25  # First quarter for reversed
                 else:
-                    # For normal gradient, use a color from the second half
-                    middle_idx = (len(gradient.colors) * 3) // 4
+                    t = 0.75  # Third quarter for normal
                 
-                # Ensure index is within bounds
-                middle_idx = max(0, min(len(gradient.colors) - 1, middle_idx))
-                
-                linear_color = gradient.colors[middle_idx].color
+                linear_color = utils.interpolate_gradient_color(gradient, t)
                 # Convert from linear to sRGB for display
                 display_color = (utils.linear_to_srgb(linear_color[0]), 
                                utils.linear_to_srgb(linear_color[1]), 
@@ -979,7 +978,8 @@ class VGRADIENT_OT_curve(bpy.types.Operator):
                     
                     # Apply blend mode based on settings
                     # Check if any color stops have alpha < 1.0
-                    has_alpha = any(color.color[3] < 0.999 for color in gradient.colors)
+                    color_stops = utils.get_gradient_colors_from_ramp(gradient)
+                    has_alpha = any(stop[1][3] < 0.999 for stop in color_stops)
                     
                     # Always get existing colors to ensure they're available
                     # Initialize chunk_existing_colors first

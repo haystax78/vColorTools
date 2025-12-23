@@ -12,6 +12,246 @@ from bpy_extras import view3d_utils
 from collections import defaultdict, namedtuple
 import heapq
 
+# Constants for ColorRamp node management
+GRADIENT_NODE_GROUP_PREFIX = ".vColorTools_Gradient_"
+
+
+def get_gradient_node_group_name(gradient_name):
+    """Get the node group name for a gradient"""
+    return f"{GRADIENT_NODE_GROUP_PREFIX}{gradient_name}"
+
+
+def get_or_create_gradient_node_group(gradient, create_if_missing=True):
+    """Get or create a hidden node group containing a ColorRamp for the gradient.
+    
+    Args:
+        gradient: GradientData PropertyGroup instance
+        create_if_missing: If False, returns None if the node group doesn't exist
+                          (useful for draw contexts where creating is not allowed)
+        
+    Returns:
+        The ColorRamp node from the node group, or None if not found and create_if_missing=False
+    """
+    node_group_name = get_gradient_node_group_name(gradient.name)
+    
+    # Check if node group already exists
+    if node_group_name in bpy.data.node_groups:
+        node_group = bpy.data.node_groups[node_group_name]
+    elif create_if_missing:
+        # Create new node group
+        node_group = bpy.data.node_groups.new(name=node_group_name, type='ShaderNodeTree')
+        # Add a ColorRamp node
+        color_ramp_node = node_group.nodes.new('ShaderNodeValToRGB')
+        color_ramp_node.name = "ColorRamp"
+        color_ramp_node.location = (0, 0)
+        
+        # Initialize with default black to white gradient
+        ramp = color_ramp_node.color_ramp
+        ramp.elements[0].color = (0, 0, 0, 1)
+        ramp.elements[0].position = 0.0
+        ramp.elements[1].color = (1, 1, 1, 1)
+        ramp.elements[1].position = 1.0
+    else:
+        return None
+    
+    # Get the ColorRamp node
+    if "ColorRamp" in node_group.nodes:
+        return node_group.nodes["ColorRamp"]
+    elif create_if_missing:
+        # Node was deleted, recreate it
+        color_ramp_node = node_group.nodes.new('ShaderNodeValToRGB')
+        color_ramp_node.name = "ColorRamp"
+        return color_ramp_node
+    else:
+        return None
+
+
+def migrate_legacy_gradients():
+    """Migrate all legacy gradients to the new ColorRamp format.
+    
+    This should be called once when a scene is loaded to convert
+    gradients from the old format (using gradient.colors collection)
+    to the new format (using hidden ColorRamp node groups).
+    """
+    for scene in bpy.data.scenes:
+        if not hasattr(scene, 'vgradient_collection'):
+            continue
+            
+        for gradient in scene.vgradient_collection:
+            node_group_name = get_gradient_node_group_name(gradient.name)
+            
+            # Check if this gradient already has a node group
+            if node_group_name in bpy.data.node_groups:
+                # Node group exists, skip migration
+                continue
+            
+            # Check if there are legacy colors to migrate
+            if len(gradient.colors) > 0:
+                # Create the node group first
+                get_or_create_gradient_node_group(gradient, create_if_missing=True)
+                # Then sync the legacy colors to the ColorRamp
+                sync_gradient_to_color_ramp(gradient)
+            else:
+                # No legacy colors, just create a default gradient
+                get_or_create_gradient_node_group(gradient, create_if_missing=True)
+
+
+def get_color_ramp_for_gradient(gradient):
+    """Get the ColorRamp object for a gradient.
+    
+    Args:
+        gradient: GradientData PropertyGroup instance
+        
+    Returns:
+        The ColorRamp object (color_ramp property of the node)
+    """
+    node = get_or_create_gradient_node_group(gradient)
+    return node.color_ramp
+
+
+def sync_gradient_to_color_ramp(gradient):
+    """Sync the legacy gradient.colors collection to the ColorRamp.
+    
+    This is used for migration from the old format.
+    
+    Args:
+        gradient: GradientData PropertyGroup instance
+    """
+    if len(gradient.colors) == 0:
+        return
+        
+    color_ramp = get_color_ramp_for_gradient(gradient)
+    
+    # Clear existing elements (keep at least one)
+    while len(color_ramp.elements) > 1:
+        color_ramp.elements.remove(color_ramp.elements[-1])
+    
+    # Sort colors by position
+    sorted_colors = sorted(gradient.colors, key=lambda c: c.position)
+    
+    # Set first element
+    if sorted_colors:
+        color_ramp.elements[0].position = sorted_colors[0].position
+        color_ramp.elements[0].color = sorted_colors[0].color[:]
+    
+    # Add remaining elements
+    for i, color_item in enumerate(sorted_colors[1:], 1):
+        elem = color_ramp.elements.new(color_item.position)
+        elem.color = color_item.color[:]
+
+
+def sync_color_ramp_to_gradient(gradient):
+    """Sync the ColorRamp back to the legacy gradient.colors collection.
+    
+    This ensures backward compatibility with operators that read from colors.
+    
+    Args:
+        gradient: GradientData PropertyGroup instance
+    """
+    color_ramp = get_color_ramp_for_gradient(gradient)
+    
+    # Clear existing colors
+    gradient.colors.clear()
+    
+    # Copy from ColorRamp
+    for elem in color_ramp.elements:
+        color_item = gradient.colors.add()
+        color_item.position = elem.position
+        color_item.color = elem.color[:]
+
+
+def cleanup_gradient_node_groups():
+    """Remove orphaned gradient node groups that don't have matching gradients."""
+    # Get all gradient names from scenes
+    gradient_names = set()
+    for scene in bpy.data.scenes:
+        if hasattr(scene, 'vgradient_collection'):
+            for gradient in scene.vgradient_collection:
+                gradient_names.add(get_gradient_node_group_name(gradient.name))
+    
+    # Find and remove orphaned node groups
+    to_remove = []
+    for ng in bpy.data.node_groups:
+        if ng.name.startswith(GRADIENT_NODE_GROUP_PREFIX):
+            if ng.name not in gradient_names:
+                to_remove.append(ng)
+    
+    for ng in to_remove:
+        bpy.data.node_groups.remove(ng)
+
+
+def rename_gradient_node_group(old_name, new_name):
+    """Rename a gradient's node group when the gradient is renamed.
+    
+    Args:
+        old_name: Previous gradient name
+        new_name: New gradient name
+    """
+    old_ng_name = get_gradient_node_group_name(old_name)
+    new_ng_name = get_gradient_node_group_name(new_name)
+    
+    if old_ng_name in bpy.data.node_groups:
+        bpy.data.node_groups[old_ng_name].name = new_ng_name
+
+
+def get_gradient_colors_from_ramp(gradient):
+    """Get a list of (position, color) tuples from the gradient's ColorRamp.
+    
+    Args:
+        gradient: GradientData PropertyGroup instance
+        
+    Returns:
+        List of (position, (r, g, b, a)) tuples sorted by position
+    """
+    color_ramp = get_color_ramp_for_gradient(gradient)
+    colors = []
+    for elem in color_ramp.elements:
+        colors.append((elem.position, tuple(elem.color)))
+    return sorted(colors, key=lambda x: x[0])
+
+
+def get_gradient_first_color(gradient):
+    """Get the first (position 0) color from the gradient's ColorRamp.
+    
+    Args:
+        gradient: GradientData PropertyGroup instance
+        
+    Returns:
+        Tuple (r, g, b, a) of the first color, or (0, 0, 0, 1) if empty
+    """
+    colors = get_gradient_colors_from_ramp(gradient)
+    if colors:
+        return colors[0][1]
+    return (0.0, 0.0, 0.0, 1.0)
+
+
+def get_gradient_last_color(gradient):
+    """Get the last (position 1) color from the gradient's ColorRamp.
+    
+    Args:
+        gradient: GradientData PropertyGroup instance
+        
+    Returns:
+        Tuple (r, g, b, a) of the last color, or (1, 1, 1, 1) if empty
+    """
+    colors = get_gradient_colors_from_ramp(gradient)
+    if colors:
+        return colors[-1][1]
+    return (1.0, 1.0, 1.0, 1.0)
+
+
+def get_gradient_color_count(gradient):
+    """Get the number of color stops in the gradient's ColorRamp.
+    
+    Args:
+        gradient: GradientData PropertyGroup instance
+        
+    Returns:
+        Number of color stops
+    """
+    color_ramp = get_color_ramp_for_gradient(gradient)
+    return len(color_ramp.elements)
+
 def get_unified_paint_settings(context):
     """Return UnifiedPaintSettings for current Blender version.
     
@@ -758,27 +998,32 @@ def oklab_to_linear_srgb_vectorized(lab):
     ]).T)
 
 def interpolate_gradient_color(gradient, factor):
-    """Interpolate color from gradient based on factor (0-1)"""
-    if not gradient or len(gradient.colors) < 2:
+    """Interpolate color from gradient based on factor (0-1) using ColorRamp data"""
+    if not gradient:
         return (1, 1, 1, 1)
     
-    # Sort color stops by position
-    sorted_colors = sorted(gradient.colors, key=lambda c: getattr(c, 'position', 0.0))
+    # Get colors from ColorRamp (already sorted by position)
+    color_stops = get_gradient_colors_from_ramp(gradient)
+    
+    if len(color_stops) < 2:
+        if len(color_stops) == 1:
+            return color_stops[0][1]
+        return (1, 1, 1, 1)
     
     # Handle edge cases
-    if factor <= sorted_colors[0].position:
-        return sorted_colors[0].color
-    if factor >= sorted_colors[-1].position:
-        return sorted_colors[-1].color
+    if factor <= color_stops[0][0]:
+        return color_stops[0][1]
+    if factor >= color_stops[-1][0]:
+        return color_stops[-1][1]
     
     # Find the two color stops to interpolate between
-    for i in range(len(sorted_colors) - 1):
-        pos1 = sorted_colors[i].position
-        pos2 = sorted_colors[i+1].position
+    for i in range(len(color_stops) - 1):
+        pos1 = color_stops[i][0]
+        pos2 = color_stops[i+1][0]
         
         if pos1 <= factor < pos2:
-            color1 = sorted_colors[i]
-            color2 = sorted_colors[i+1]
+            color1 = color_stops[i][1]
+            color2 = color_stops[i+1][1]
             
             # Calculate local factor within segment
             segment_size = pos2 - pos1
@@ -788,35 +1033,34 @@ def interpolate_gradient_color(gradient, factor):
                 local_factor = 0.0
             
             # Interpolate color and alpha
-            r = color1.color[0] * (1 - local_factor) + color2.color[0] * local_factor
-            g = color1.color[1] * (1 - local_factor) + color2.color[1] * local_factor
-            b = color1.color[2] * (1 - local_factor) + color2.color[2] * local_factor
-            a = color1.color[3] * (1 - local_factor) + color2.color[3] * local_factor
+            r = color1[0] * (1 - local_factor) + color2[0] * local_factor
+            g = color1[1] * (1 - local_factor) + color2[1] * local_factor
+            b = color1[2] * (1 - local_factor) + color2[2] * local_factor
+            a = color1[3] * (1 - local_factor) + color2[3] * local_factor
             
             return (r, g, b, a)
     
     # Fallback (should never reach here)
-    return sorted_colors[-1].color
+    return color_stops[-1][1]
 
 def interpolate_gradient_colors_batch(gradient, factors):
-    """Interpolate colors for multiple factors at once"""
+    """Interpolate colors for multiple factors at once using ColorRamp data"""
     import numpy as np
     import time
     
-    # interp_start = time.time()
+    # Get colors from the ColorRamp
+    color_stops = get_gradient_colors_from_ramp(gradient)
+    num_colors = len(color_stops)
     
-    num_colors = len(gradient.colors)
     if num_colors == 0:
         return None
     if num_colors == 1:
-        color = np.array(gradient.colors[0].color, dtype=np.float32)
+        color = np.array(color_stops[0][1], dtype=np.float32)
         return np.tile(color, (len(factors), 1))
     
-    # Sort color stops by position and create arrays for positions and colors
-    # sort_start = time.time()
-    sorted_stops = sorted(gradient.colors, key=lambda c: getattr(c, 'position', 0.0))
-    positions = np.array([getattr(c, 'position', i/(num_colors-1)) for i, c in enumerate(sorted_stops)], dtype=np.float32)
-    colors = np.array([c.color for c in sorted_stops], dtype=np.float32)
+    # color_stops is already sorted by position: list of (position, (r,g,b,a))
+    positions = np.array([stop[0] for stop in color_stops], dtype=np.float32)
+    colors = np.array([stop[1] for stop in color_stops], dtype=np.float32)
     # print_timing(sort_start, "Sort color stops and create arrays")
     
     # Initialize result array

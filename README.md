@@ -1,25 +1,28 @@
 # vColorTools - Vertex Color Tools Addon for Blender
 
-**Version:** 1.2.2  
+**Version:** 2.0.0  
 **Author:** MattGPT  
-**Compatibility:** Blender 4.0.0 and newer  
+**Compatibility:** Blender 4.5.0 and newer  
 
 ## Overview
 
 vColorTools is a powerful Blender addon for creating and manipulating vertex colors with intuitive gradient tools. It offers advanced color interpolation, multiple gradient types, and works seamlessly in Object, Edit, and Sculpt modes. The addon enables precise control over vertex color data with optimized performance suitable for both artistic and technical workflows.
 
-## What's New in v1.2.2
+## What's New in v2.0.0
 
-- Fixed incorrect color application in Blender 5 for Flood Fill
-  (unified paint color is linear in 5.0+, no double conversion).
-- Store Base now converts BYTE_COLOR attributes to FLOAT_COLOR instead
-  of creating a duplicate empty attribute; preserves data and name.
-- Palette panel updated to Blender-native layout using `template_palette`,
-  with a dedicated "Create Default Palette" (vColorTools) button and
-  legacy palette compatibility.
-- Fill tool panel updated with a resizable color wheel and compact
-  controls row (swatch, size slider, reset).
-- Gradient tools panel spacing updated for efficiency.
+- **Native Blender Gradient Editor**: Replaced custom gradient editor with Blender's 
+  built-in `template_color_ramp` widget for a better, more familiar user experience.
+- **Minimum Blender Version**: Now requires Blender 4.5.0 or newer.
+- Gradient data is now stored in hidden node groups using ColorRamp nodes for 
+  seamless integration with Blender's native UI.
+- Removed obsolete custom gradient editor code for cleaner, more maintainable codebase.
+
+## Previous Changes (v1.2.2)
+
+- Fixed incorrect color application in Blender 5 for Flood Fill.
+- Store Base now converts BYTE_COLOR attributes to FLOAT_COLOR.
+- Palette panel updated to Blender-native layout using `template_palette`.
+- Fill tool panel updated with a resizable color wheel and compact controls.
 
 ## Key Features
 
