@@ -14,6 +14,7 @@ from .gradient_operators.radial import VGRADIENT_OT_radial
 from .gradient_operators.normal import VGRADIENT_OT_normal
 from .gradient_operators.curve import VGRADIENT_OT_curve
 from .gradient_operators.flood_fill import VGRADIENT_OT_flood_fill
+from .gradient_operators.flex import VGRADIENT_OT_flex_gradient
 from .gradient_operators.management import (
     VGRADIENT_OT_add_gradient,
     VGRADIENT_OT_remove_gradient,
@@ -37,6 +38,7 @@ classes = (
     VGRADIENT_OT_normal,
     VGRADIENT_OT_curve,
     VGRADIENT_OT_flood_fill,
+    VGRADIENT_OT_flex_gradient,
     VGRADIENT_OT_apply_curves,
     VGRADIENT_OT_store_colors,
     VGRADIENT_OT_clear_stored_colors,

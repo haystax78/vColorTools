@@ -7,7 +7,7 @@ bl_info = {
     "name": "vColor Tools",
     "blender": (4, 5, 0),
     "category": "Object",
-    "version": (1, 3, 0),
+    "version": (2, 0, 1),
     "author": "MattGPT",
     "description": "Tools to supplement your vertex painting workflow",
 }
@@ -49,6 +49,12 @@ def initialize_gradient_positions(dummy):
             for gradient in scene.vgradient_collection:
                 utils.ensure_gradient_positions(gradient)
 
+
+@persistent
+def persist_gradient_color_ramps(dummy):
+    """Persist ColorRamp edits back to scene data before saving."""
+    utils.sync_all_color_ramps_to_gradients()
+
 def register():
     # Register preferences (includes auto-updater)
     preferences.register()
@@ -63,8 +69,9 @@ def register():
     bpy.types.Scene.vgradient_collection = CollectionProperty(type=properties.GradientData)
     bpy.types.Scene.vgradient_active_index = IntProperty()
     
-    # Register the load handler to initialize gradient positions
+    # Register handlers for load/save gradient data flow
     bpy.app.handlers.load_post.append(initialize_gradient_positions)
+    bpy.app.handlers.save_pre.append(persist_gradient_color_ramps)
     
     # Register UI - do this last so UI can access the properties
     ui.register()
@@ -106,6 +113,15 @@ def register():
             value='PRESS'
         )
         addon_keymaps.append((km, kmi))
+
+        # Flex gradient
+        kmi = km.keymap_items.new(
+            operators.VGRADIENT_OT_flex_gradient.bl_idname,
+            type='EQUAL',
+            value='PRESS',
+            shift=True
+        )
+        addon_keymaps.append((km, kmi))
         
         # Normal gradient
         kmi = km.keymap_items.new(
@@ -122,9 +138,11 @@ def unregister():
         km.keymap_items.remove(kmi)
     addon_keymaps.clear()
     
-    # Remove the load handler
+    # Remove handlers
     if initialize_gradient_positions in bpy.app.handlers.load_post:
         bpy.app.handlers.load_post.remove(initialize_gradient_positions)
+    if persist_gradient_color_ramps in bpy.app.handlers.save_pre:
+        bpy.app.handlers.save_pre.remove(persist_gradient_color_ramps)
     
     # Unregister UI
     ui.unregister()

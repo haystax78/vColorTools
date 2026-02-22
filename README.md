@@ -1,12 +1,19 @@
 # vColorTools - Vertex Color Tools Addon for Blender
 
-**Version:** 2.0.0  
+**Version:** 2.0.1  
 **Author:** MattGPT  
 **Compatibility:** Blender 4.5.0 and newer  
 
 ## Overview
 
 vColorTools is a powerful Blender addon for creating and manipulating vertex colors with intuitive gradient tools. It offers advanced color interpolation, multiple gradient types, and works seamlessly in Object, Edit, and Sculpt modes. The addon enables precise control over vertex color data with optimized performance suitable for both artistic and technical workflows.
+
+## What's New in v2.0.1
+
+- **New Flex Gradient Operator (`Shift + =`)**: Added a dedicated operator to
+  apply the active gradient to Super Tools Flex meshes from root to tip.
+- **Gradient Persistence Fix**: ColorRamp edits are now synced to scene
+  gradient data before save, and gradient node groups are marked to persist.
 
 ## What's New in v2.0.0
 

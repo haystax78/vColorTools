@@ -7,6 +7,7 @@ Contains all gradient-related operator classes
 from .linear import VGRADIENT_OT_linear
 from .radial import VGRADIENT_OT_radial
 from .normal import VGRADIENT_OT_normal
+from .flex import VGRADIENT_OT_flex_gradient
 from .management import (
     VGRADIENT_OT_add_gradient,
     VGRADIENT_OT_remove_gradient,

@@ -37,9 +37,18 @@ def get_or_create_gradient_node_group(gradient, create_if_missing=True):
     # Check if node group already exists
     if node_group_name in bpy.data.node_groups:
         node_group = bpy.data.node_groups[node_group_name]
+        if create_if_missing:
+            try:
+                node_group.use_fake_user = True
+            except AttributeError:
+                pass
     elif create_if_missing:
         # Create new node group
         node_group = bpy.data.node_groups.new(name=node_group_name, type='ShaderNodeTree')
+        try:
+            node_group.use_fake_user = True
+        except AttributeError:
+            pass
         # Add a ColorRamp node
         color_ramp_node = node_group.nodes.new('ShaderNodeValToRGB')
         color_ramp_node.name = "ColorRamp"
@@ -158,6 +167,24 @@ def sync_color_ramp_to_gradient(gradient):
         color_item = gradient.colors.add()
         color_item.position = elem.position
         color_item.color = elem.color[:]
+
+
+def sync_all_color_ramps_to_gradients():
+    """Sync all ColorRamp data to gradient collections before saving.
+
+    The gradient collection is scene data and is always saved with the file.
+    This keeps a serialized backup of gradient colors even if node groups are
+    removed by Blender data cleanup rules.
+    """
+    for scene in bpy.data.scenes:
+        if not hasattr(scene, 'vgradient_collection'):
+            continue
+
+        for gradient in scene.vgradient_collection:
+            sync_color_ramp_to_gradient(gradient)
+            node_group_name = get_gradient_node_group_name(gradient.name)
+            if node_group_name in bpy.data.node_groups:
+                bpy.data.node_groups[node_group_name].use_fake_user = True
 
 
 def cleanup_gradient_node_groups():
