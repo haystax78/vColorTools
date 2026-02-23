@@ -252,6 +252,23 @@ class VGRADIENT_OT_apply_curves(bpy.types.Operator):
             selected_verts = None
             if context.mode == 'EDIT_MESH':
                 selected_verts = utils.get_selected_vertices(obj)
+
+            # Check if we need to respect sculpt mask
+            use_existing_mask = False
+            mask_data = None
+            if hasattr(obj.data, 'vertex_paint_mask'):
+                mask = obj.data.vertex_paint_mask
+                if mask and hasattr(mask, 'data'):
+                    use_existing_mask = True
+                    mask_data = np.empty(num_verts, dtype=np.float32)
+                    mask.data.foreach_get('value', mask_data)
+
+            if not use_existing_mask:
+                mask = obj.data.attributes.get("mask")
+                if mask and hasattr(mask, 'data'):
+                    use_existing_mask = True
+                    mask_data = np.empty(num_verts, dtype=np.float32)
+                    mask.data.foreach_get('value', mask_data)
             
             # Check if we have stored colors to use as baseline
             if "vgradient_stored_colors" in obj:
@@ -306,6 +323,13 @@ class VGRADIENT_OT_apply_curves(bpy.types.Operator):
                 mask = np.zeros(num_verts, dtype=bool)
                 mask[selected_verts] = True
                 final_colors = np.where(mask[:, np.newaxis], final_colors, existing_colors)
+
+            # In sculpt mode, respect existing mask data
+            if use_existing_mask:
+                final_colors = (
+                    existing_colors * mask_data[:, np.newaxis]
+                    + final_colors * (1 - mask_data[:, np.newaxis])
+                )
             
             # Write colors back
             utils.update_color_attribute(obj, target_attribute, final_colors, selected_verts)

@@ -1,12 +1,18 @@
 # vColorTools - Vertex Color Tools Addon for Blender
 
-**Version:** 2.0.1  
+**Version:** 2.0.2  
 **Author:** MattGPT  
 **Compatibility:** Blender 4.5.0 and newer  
 
 ## Overview
 
 vColorTools is a powerful Blender addon for creating and manipulating vertex colors with intuitive gradient tools. It offers advanced color interpolation, multiple gradient types, and works seamlessly in Object, Edit, and Sculpt modes. The addon enables precise control over vertex color data with optimized performance suitable for both artistic and technical workflows.
+
+## What's New in v2.0.2
+
+- **RGB Curves Mask Respect (Sculpt + Object Modes)**: RGB Curves now respects
+  existing sculpt mask data when applying adjustments in both Sculpt mode and
+  Object mode, matching gradient tool behavior.
 
 ## What's New in v2.0.1
 
