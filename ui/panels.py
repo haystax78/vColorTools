@@ -294,7 +294,7 @@ class VGRADIENT_PT_Panel(bpy.types.Panel):
                 if paint_settings.palette:
                     # Native palette grid display
                     col = box.column()
-                    col.template_palette(paint_settings, "palette", color=True)
+                    col.template_palette(paint_settings, "palette")
         
         # RGB Curves - Collapsible panel
         box = layout.box()
